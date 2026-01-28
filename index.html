@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Daily Path</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --cream:#f7f4ef;
+  --pink:#f2d6dc;
+  --silver:#cfcfd4;
+  --text:#3b3b3b;
+}
+
+body {
+  margin:0;
+  font-family:'Playfair Display', serif;
+  background:linear-gradient(var(--cream), var(--pink));
+  color:var(--text);
+}
+
+header {
+  text-align:center;
+  padding:3rem 1rem;
+}
+
+header h1 { font-size:2.4rem; margin-bottom:0.4rem; }
+header p { opacity:0.7; }
+
+.container {
+  max-width:900px;
+  margin:auto;
+  padding:2rem;
+}
+
+.card {
+  background:rgba(255,255,255,0.9);
+  border-radius:12px;
+  padding:2rem;
+  margin-bottom:2rem;
+  box-shadow:0 10px 30px rgba(0,0,0,0.08);
+}
+
+h2 { margin-bottom:1rem; }
+
+input, select {
+  width:100%;
+  padding:0.6rem;
+  margin-top:0.4rem;
+  border-radius:6px;
+  border:1px solid var(--silver);
+  font-family:inherit;
+}
+
+button {
+  margin-top:1.2rem;
+  padding:0.6rem 1.4rem;
+  border:none;
+  border-radius:20px;
+  background:var(--silver);
+  font-family:inherit;
+  cursor:pointer;
+}
+
+button:hover { background:var(--pink); }
+
+.task {
+  display:flex;
+  align-items:center;
+  margin-top:0.8rem;
+  padding:0.6rem;
+  background:#fff;
+  border-left:4px solid var(--silver);
+  border-radius:6px;
+}
+
+.task.integral { border-color:#b07a8a; }
+.task.should { border-color:#9c9cab; }
+.task.optional { border-color:#cfcfd4; }
+
+.task input {
+  width:auto;
+  margin-right:0.8rem;
+}
+
+.hidden { display:none; }
+
+.path {
+  font-size:1.2rem;
+  margin-bottom:1rem;
+}
+
+footer {
+  text-align:center;
+  padding:3rem 1rem;
+  font-size:0.9rem;
+  opacity:0.6;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>Daily Path</h1>
+  <p>Structure without punishment</p>
+  <p><a href="archive.html">View Archive</a></p>
+</header>
+
+<div class="container">
+
+<div class="card">
+<h2>Night Setup</h2>
+
+<input id="taskInput" placeholder="Task">
+<select id="importance">
+  <option value="integral">Integral</option>
+  <option value="should">Should Do</option>
+  <option value="optional">Would Like To</option>
+</select>
+
+<button onclick="addTask()">Add Task</button>
+<div id="taskList"></div>
+</div>
+
+<div class="card">
+<h2>Morning Check-In</h2>
+
+<select id="sleep">
+  <option value="good">Slept enough</option>
+  <option value="bad">Did not sleep well</option>
+</select>
+
+<select id="feeling">
+  <option value="good">Feel okay</option>
+  <option value="low">Feel low</option>
+</select>
+
+<select id="wake">
+  <option value="yes">Woke up on time</option>
+  <option value="no">Did not</option>
+</select>
+
+<button onclick="decidePath()">Begin Day</button>
+</div>
+
+<div class="card hidden" id="day">
+<div class="path" id="pathTitle"></div>
+<div id="dayTasks"></div>
+<button onclick="archiveDay()">Archive Day</button>
+</div>
+
+</div>
+
+<footer>
+Missing a day is neutral.
+</footer>
+
+<script>
+let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+function saveTasks() {
+  localStorage.setItem("tasks", JSON.stringify(tasks));
+}
+
+function addTask() {
+  const text = taskInput.value;
+  if (!text) return;
+  tasks.push({ text, importance: importance.value, done:false });
+  taskInput.value="";
+  saveTasks();
+  renderTasks();
+}
+
+function renderTasks() {
+  taskList.innerHTML="";
+  tasks.forEach(t=>{
+    const div=document.createElement("div");
+    div.className=`task ${t.importance}`;
+    div.textContent=t.text;
+    taskList.appendChild(div);
+  });
+}
+
+renderTasks();
+
+function decidePath() {
+  let path="green";
+  if (sleep.value==="bad" || feeling.value==="low") path="yellow";
+  if (sleep.value==="bad" && wake.value==="no") path="red";
+  showDay(path);
+}
+
+function showDay(path) {
+  day.classList.remove("hidden");
+  dayTasks.innerHTML="";
+  pathTitle.textContent=
+    path==="green"?"Green Path — Everything":
+    path==="yellow"?"Yellow Path — Enough is enough":
+    "Red Path — Only essentials";
+
+  tasks.forEach((t,i)=>{
+    if (
+      path==="green" ||
+      (path==="yellow" && t.importance!=="optional") ||
+      (path==="red" && t.importance==="integral")
+    ) {
+      const div=document.createElement("div");
+      div.className=`task ${t.importance}`;
+      div.innerHTML=`<input type="checkbox" ${t.done?"checked":""}
+        onchange="toggleDone(${i})">${t.text}`;
+      dayTasks.appendChild(div);
+    }
+  });
+
+  localStorage.setItem("currentPath", path);
+}
+
+function toggleDone(i){
+  tasks[i].done=!tasks[i].done;
+  saveTasks();
+}
+
+function archiveDay(){
+  const archive=JSON.parse(localStorage.getItem("archive"))||[];
+  archive.push({
+    date:new Date().toLocaleDateString(),
+    path:localStorage.getItem("currentPath"),
+    tasks:[...tasks]
+  });
+  localStorage.setItem("archive",JSON.stringify(archive));
+  tasks=[];
+  saveTasks();
+  alert("Day archived 🌙");
+  location.reload();
+}
+</script>
+
+</body>
+</html>
