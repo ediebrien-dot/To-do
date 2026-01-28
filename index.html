@@ -3,22 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <title>Daily Path</title>
-
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet">
-
 <style>
 :root {
-  --cream:#f7f4ef;
-  --pink:#f2d6dc;
-  --silver:#cfcfd4;
-  --text:#3b3b3b;
+  --cream: #f2eee8;
+  --pink: #e8c0c7;
+  --silver: #bfc0c6;
+  --green: #8fbf8a;
+  --yellow: #f2d97f;
+  --red: #d97b7f;
+  --text: #3b3b3b;
 }
 
 body {
   margin:0;
   font-family:'Playfair Display', serif;
-  background:linear-gradient(var(--cream), var(--pink));
-  color:var(--text);
+  background: linear-gradient(var(--cream), var(--pink));
+  color: var(--text);
 }
 
 header {
@@ -26,8 +27,17 @@ header {
   padding:3rem 1rem;
 }
 
-header h1 { font-size:2.4rem; margin-bottom:0.4rem; }
-header p { opacity:0.7; }
+header h1 {
+  font-size:2.5rem;
+  margin-bottom:0.3rem;
+}
+
+header p {
+  opacity:0.7;
+  margin:0.2rem 0;
+}
+
+a { text-decoration:none; color:var(--text); }
 
 .container {
   max-width:900px;
@@ -36,7 +46,7 @@ header p { opacity:0.7; }
 }
 
 .card {
-  background:rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.9);
   border-radius:12px;
   padding:2rem;
   margin-bottom:2rem;
@@ -44,27 +54,6 @@ header p { opacity:0.7; }
 }
 
 h2 { margin-bottom:1rem; }
-
-input, select {
-  width:100%;
-  padding:0.6rem;
-  margin-top:0.4rem;
-  border-radius:6px;
-  border:1px solid var(--silver);
-  font-family:inherit;
-}
-
-button {
-  margin-top:1.2rem;
-  padding:0.6rem 1.4rem;
-  border:none;
-  border-radius:20px;
-  background:var(--silver);
-  font-family:inherit;
-  cursor:pointer;
-}
-
-button:hover { background:var(--pink); }
 
 .task {
   display:flex;
@@ -80,17 +69,11 @@ button:hover { background:var(--pink); }
 .task.should { border-color:#9c9cab; }
 .task.optional { border-color:#cfcfd4; }
 
-.task input {
-  width:auto;
-  margin-right:0.8rem;
-}
+.task input { width:auto; margin-right:0.8rem; }
 
 .hidden { display:none; }
 
-.path {
-  font-size:1.2rem;
-  margin-bottom:1rem;
-}
+.path { font-size:1.2rem; margin-bottom:1rem; }
 
 footer {
   text-align:center;
@@ -98,9 +81,66 @@ footer {
   font-size:0.9rem;
   opacity:0.6;
 }
+
+/* Buttons for morning check-in */
+.button-group {
+  display:flex;
+  gap:1rem;
+  margin-top:0.5rem;
+  margin-bottom:1rem;
+}
+
+.button-group button {
+  flex:1;
+  padding:0.6rem;
+  border:1px solid var(--silver);
+  border-radius:20px;
+  background: var(--cream);
+  font-family:inherit;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+.button-group button.selected {
+  background: var(--pink);
+  border-color: var(--pink);
+  color:#fff;
+}
+
+.button-group button:hover {
+  background: var(--pink);
+  color:#fff;
+}
+
+/* Photo placeholder */
+.photo-box {
+  width:100%;
+  height:200px;
+  border:2px dashed var(--silver);
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:1.5rem;
+  opacity:0.7;
+  position: relative;
+}
+
+.photo-box input[type="file"] {
+  position:absolute;
+  width:100%;
+  height:100%;
+  opacity:0;
+  cursor:pointer;
+}
+
+.photo-box p {
+  pointer-events:none;
+  font-size:1rem;
+  text-align:center;
+}
 </style>
 </head>
-
 <body>
 
 <header>
@@ -111,110 +151,138 @@ footer {
 
 <div class="container">
 
-<div class="card">
-<h2>Night Setup</h2>
+  <!-- Photo upload -->
+  <div class="photo-box">
+    <p>Click or drag to upload a photo ✿</p>
+    <input type="file" accept="image/*">
+  </div>
 
-<input id="taskInput" placeholder="Task">
-<select id="importance">
-  <option value="integral">Integral</option>
-  <option value="should">Should Do</option>
-  <option value="optional">Would Like To</option>
-</select>
+  <!-- Night Setup -->
+  <div class="card">
+    <h2>Night Setup</h2>
+    <input id="taskInput" placeholder="Task">
+    <div class="button-group">
+      <button data-value="integral" onclick="setImportance(this)">Integral</button>
+      <button data-value="should" onclick="setImportance(this)">Should Do</button>
+      <button data-value="optional" onclick="setImportance(this)">Would Like To</button>
+    </div>
+    <button onclick="addTask()">Add Task</button>
+    <div id="taskList"></div>
+  </div>
 
-<button onclick="addTask()">Add Task</button>
-<div id="taskList"></div>
-</div>
+  <!-- Morning Check-In -->
+  <div class="card">
+    <h2>Morning Check-In</h2>
 
-<div class="card">
-<h2>Morning Check-In</h2>
+    <p>How much did you sleep?</p>
+    <div class="button-group" id="sleepButtons">
+      <button data-value="good">Enough</button>
+      <button data-value="bad">Very little</button>
+    </div>
 
-<select id="sleep">
-  <option value="good">Slept enough</option>
-  <option value="bad">Did not sleep well</option>
-</select>
+    <p>How do you feel?</p>
+    <div class="button-group" id="feelingButtons">
+      <button data-value="good">Okay / Good</button>
+      <button data-value="low">Low / Fragile</button>
+    </div>
 
-<select id="feeling">
-  <option value="good">Feel okay</option>
-  <option value="low">Feel low</option>
-</select>
+    <p>Did you wake up on time?</p>
+    <div class="button-group" id="wakeButtons">
+      <button data-value="yes">Yes</button>
+      <button data-value="no">No</button>
+    </div>
 
-<select id="wake">
-  <option value="yes">Woke up on time</option>
-  <option value="no">Did not</option>
-</select>
+    <button onclick="decidePath()">Begin Day</button>
+  </div>
 
-<button onclick="decidePath()">Begin Day</button>
-</div>
-
-<div class="card hidden" id="day">
-<div class="path" id="pathTitle"></div>
-<div id="dayTasks"></div>
-<button onclick="archiveDay()">Archive Day</button>
-</div>
+  <!-- Day View -->
+  <div class="card hidden" id="day">
+    <div class="path" id="pathTitle"></div>
+    <div id="dayTasks"></div>
+    <button onclick="archiveDay()">Archive Day</button>
+  </div>
 
 </div>
 
 <footer>
-Missing a day is neutral.
+  Missing a day is neutral.
 </footer>
 
 <script>
 let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+let importance = "integral";
+let sleep="", feeling="", wake="";
 
 function saveTasks() {
   localStorage.setItem("tasks", JSON.stringify(tasks));
 }
 
+// Night Setup
+function setImportance(btn){
+  importance = btn.dataset.value;
+  btn.parentNode.querySelectorAll("button").forEach(b=>b.classList.remove("selected"));
+  btn.classList.add("selected");
+}
+
 function addTask() {
-  const text = taskInput.value;
-  if (!text) return;
-  tasks.push({ text, importance: importance.value, done:false });
-  taskInput.value="";
+  const text = document.getElementById("taskInput").value;
+  if(!text) return;
+  tasks.push({text, importance, done:false});
+  document.getElementById("taskInput").value="";
   saveTasks();
   renderTasks();
 }
 
 function renderTasks() {
-  taskList.innerHTML="";
+  const list = document.getElementById("taskList");
+  list.innerHTML="";
   tasks.forEach(t=>{
     const div=document.createElement("div");
     div.className=`task ${t.importance}`;
     div.textContent=t.text;
-    taskList.appendChild(div);
+    list.appendChild(div);
   });
 }
 
 renderTasks();
 
+// Morning Check-In buttons
+function setupButtons(id, variableName) {
+  document.querySelectorAll(`#${id} button`).forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      window[variableName] = btn.dataset.value;
+      btn.parentNode.querySelectorAll("button").forEach(b=>b.classList.remove("selected"));
+      btn.classList.add("selected");
+    });
+  });
+}
+
+setupButtons("sleepButtons","sleep");
+setupButtons("feelingButtons","feeling");
+setupButtons("wakeButtons","wake");
+
+// Day logic
 function decidePath() {
-  let path="green";
-  if (sleep.value==="bad" || feeling.value==="low") path="yellow";
-  if (sleep.value==="bad" && wake.value==="no") path="red";
+  let path = "green";
+  if(sleep==="bad" || feeling==="low") path="yellow";
+  if(sleep==="bad" && wake==="no") path="red";
   showDay(path);
 }
 
-function showDay(path) {
-  day.classList.remove("hidden");
-  dayTasks.innerHTML="";
-  pathTitle.textContent=
-    path==="green"?"Green Path — Everything":
-    path==="yellow"?"Yellow Path — Enough is enough":
-    "Red Path — Only essentials";
-
+function showDay(path){
+  document.getElementById("day").classList.remove("hidden");
+  const title = document.getElementById("pathTitle");
+  const container = document.getElementById("dayTasks");
+  container.innerHTML="";
+  title.textContent = path==="green"?"Green Path — Everything":path==="yellow"?"Yellow Path — Enough is enough":"Red Path — Only essentials";
   tasks.forEach((t,i)=>{
-    if (
-      path==="green" ||
-      (path==="yellow" && t.importance!=="optional") ||
-      (path==="red" && t.importance==="integral")
-    ) {
+    if(path==="green" || (path==="yellow" && t.importance!=="optional") || (path==="red" && t.importance==="integral")){
       const div=document.createElement("div");
       div.className=`task ${t.importance}`;
-      div.innerHTML=`<input type="checkbox" ${t.done?"checked":""}
-        onchange="toggleDone(${i})">${t.text}`;
-      dayTasks.appendChild(div);
+      div.innerHTML=`<input type="checkbox" ${t.done?"checked":""} onchange="toggleDone(${i})">${t.text}`;
+      container.appendChild(div);
     }
   });
-
   localStorage.setItem("currentPath", path);
 }
 
@@ -223,11 +291,12 @@ function toggleDone(i){
   saveTasks();
 }
 
+// Archive
 function archiveDay(){
-  const archive=JSON.parse(localStorage.getItem("archive"))||[];
+  const archive = JSON.parse(localStorage.getItem("archive"))||[];
   archive.push({
     date:new Date().toLocaleDateString(),
-    path:localStorage.getItem("currentPath"),
+    path: localStorage.getItem("currentPath"),
     tasks:[...tasks]
   });
   localStorage.setItem("archive",JSON.stringify(archive));
