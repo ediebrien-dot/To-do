@@ -13,7 +13,7 @@
   --yellow: #f2d97f;
   --red: #d97b7f;
   --text: #3b3b3b;
-  --archive-color: #cfa7b0; /* slightly different pink for archive link */
+  --archive-color: #a65a6d; /* darker pink for archive link */
 }
 
 body {
@@ -65,7 +65,8 @@ h2 { margin-bottom:1rem; }
 .task.should { border-color:#9c9cab; }
 .task.optional { border-color:#cfcfd4; }
 
-.task input { width:auto; margin-right:0.8rem; }
+.task input[type="checkbox"] { width:auto; margin-right:0.8rem; }
+.task select { margin-left:auto; border-radius:12px; border:1px solid var(--silver); padding:0.3rem; }
 
 .hidden { display:none; }
 
@@ -110,7 +111,7 @@ footer {
 
 /* Photo */
 .photo-box {
-  width:60%;
+  width:100%;
   display:flex;
   justify-content:center;
   margin-bottom:1.5rem;
@@ -118,7 +119,6 @@ footer {
 
 .photo {
   width:60%;
-  max-width:500px;
   border:5px solid var(--cream);
   border-radius:12px;
   transition: transform 0.3s ease;
@@ -133,7 +133,16 @@ footer {
   border-radius:12px;
   border:1px solid var(--silver);
   font-family:inherit;
+  margin-bottom:0.5rem;
+}
+
+#importanceSelect {
+  width: 100%;
+  padding:0.6rem;
   margin-bottom:0.8rem;
+  border-radius:12px;
+  border:1px solid var(--silver);
+  font-family:inherit;
 }
 
 #addWeeklyTask {
@@ -168,14 +177,19 @@ footer {
   <div class="card">
     <h2>Weekly Tasks</h2>
     <input type="text" id="weeklyInput" placeholder="Enter a weekly task">
-    <button id="addWeeklyTask">Add</button>
+    <select id="importanceSelect">
+      <option value="integral">Integral</option>
+      <option value="should">Should Do</option>
+      <option value="optional">Would Like To</option>
+    </select>
+    <button id="addWeeklyTask">Add Task</button>
     <div id="weeklyList"></div>
   </div>
 
   <!-- Daily Prioritising -->
   <div class="card">
     <h2>Daily Prioritising</h2>
-    <p>Select tasks for today:</p>
+    <p>Select tasks for today and adjust importance if needed:</p>
     <div id="dailyChoices"></div>
   </div>
 
@@ -222,6 +236,7 @@ let sleep="", feeling="", wake="";
 
 // Add weekly task
 const weeklyInput = document.getElementById("weeklyInput");
+const importanceSelect = document.getElementById("importanceSelect");
 const weeklyList = document.getElementById("weeklyList");
 
 function saveWeekly() { localStorage.setItem("weeklyTasks", JSON.stringify(weeklyTasks)); }
@@ -229,52 +244,45 @@ function saveWeekly() { localStorage.setItem("weeklyTasks", JSON.stringify(weekl
 document.getElementById("addWeeklyTask").addEventListener("click", ()=>{
   const text = weeklyInput.value.trim();
   if(!text) return;
-  weeklyTasks.push({text, importance:"integral", done:false}); // default importance
+  const importance = importanceSelect.value;
+  weeklyTasks.push({text, importance, done:false});
   weeklyInput.value="";
-  saveWeekly();
   renderWeekly();
+  saveWeekly();
+  renderDailyChoices();
 });
 
 function renderWeekly(){
   weeklyList.innerHTML="";
   weeklyTasks.forEach((t,i)=>{
     const div = document.createElement("div");
-    div.className="task integral";
-    div.textContent = t.text;
+    div.className="task "+t.importance;
+    div.textContent = t.text + " (" + t.importance + ")";
     weeklyList.appendChild(div);
   });
 }
 
-renderWeekly();
-
-// Daily selection from weekly
+// Daily selection
 const dailyChoices = document.getElementById("dailyChoices");
 function renderDailyChoices(){
   dailyChoices.innerHTML="";
   weeklyTasks.forEach((t,i)=>{
     const div = document.createElement("div");
-    div.className="task integral";
-    div.innerHTML=`<input type="checkbox" data-index="${i}"> ${t.text}`;
+    div.className="task "+t.importance;
+    div.innerHTML = `<input type="checkbox" data-index="${i}"> ${t.text} 
+      <select data-index="${i}" onchange="updateDailyImportance(this)">
+        <option value="integral" ${t.importance==='integral'?'selected':''}>Integral</option>
+        <option value="should" ${t.importance==='should'?'selected':''}>Should Do</option>
+        <option value="optional" ${t.importance==='optional'?'selected':''}>Would Like To</option>
+      </select>`;
     dailyChoices.appendChild(div);
   });
 }
-renderDailyChoices();
 
-function decidePath() {
-  // gather selected tasks
-  dailyTasks = [];
-  dailyChoices.querySelectorAll("input[type=checkbox]").forEach(input=>{
-    if(input.checked){
-      const i = parseInt(input.dataset.index);
-      dailyTasks.push({...weeklyTasks[i]});
-    }
-  });
-
-  // path logic
-  let path = "green";
-  if(sleep==="bad" || feeling==="low") path="yellow";
-  if(sleep==="bad" && wake==="no") path="red";
-  showDay(path);
+function updateDailyImportance(sel){
+  const i = parseInt(sel.dataset.index);
+  weeklyTasks[i].importance = sel.value;
+  renderWeekly();
 }
 
 // Morning Check-In buttons
@@ -292,6 +300,21 @@ setupButtons("sleepButtons","sleep");
 setupButtons("feelingButtons","feeling");
 setupButtons("wakeButtons","wake");
 
+function decidePath() {
+  dailyTasks = [];
+  dailyChoices.querySelectorAll("input[type=checkbox]").forEach(input=>{
+    if(input.checked){
+      const i = parseInt(input.dataset.index);
+      dailyTasks.push({...weeklyTasks[i]});
+    }
+  });
+
+  let path = "green";
+  if(sleep==="bad" || feeling==="low") path="yellow";
+  if(sleep==="bad" && wake==="no") path="red";
+  showDay(path);
+}
+
 function showDay(path){
   document.getElementById("day").classList.remove("hidden");
   const title = document.getElementById("pathTitle");
@@ -304,7 +327,7 @@ function showDay(path){
     if(include){
       const div = document.createElement("div");
       div.className=`task ${t.importance}`;
-      div.innerHTML=`<input type="checkbox" ${t.done?"checked":""} onchange="toggleDone(${i})"> ${t.text}`;
+      div.innerHTML=`<input type="checkbox" ${t.done?"checked":""} onchange="toggleDone(${i})"> ${t.text} (${t.importance})`;
       container.appendChild(div);
     }
   });
@@ -322,11 +345,10 @@ function archiveDay(){
   });
   localStorage.setItem("archive", JSON.stringify(archive));
   dailyTasks=[];
-  renderDailyChoices(); // reset daily selection
+  renderDailyChoices();
   alert("Day archived 🌙");
   document.getElementById("day").classList.add("hidden");
 }
 </script>
-
 </body>
 </html>
