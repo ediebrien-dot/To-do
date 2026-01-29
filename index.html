@@ -13,6 +13,7 @@
   --yellow: #f2d97f;
   --red: #d97b7f;
   --text: #3b3b3b;
+  --archive-color: #cfa7b0; /* slightly different pink for archive link */
 }
 
 body {
@@ -27,23 +28,18 @@ header {
   padding:3rem 1rem;
 }
 
-header h1 {
-  font-size:2.5rem;
-  margin-bottom:0.3rem;
-}
+header h1 { font-size:2.5rem; margin-bottom:0.3rem; }
+header p { opacity:0.7; margin:0.2rem 0; }
 
-header p {
-  opacity:0.7;
-  margin:0.2rem 0;
+header a {
+  text-decoration:none;
+  color: var(--archive-color);
+  font-weight:600;
+  transition:0.2s;
 }
+header a:hover { color: var(--text); }
 
-a { text-decoration:none; color:var(--text); }
-
-.container {
-  max-width:900px;
-  margin:auto;
-  padding:2rem;
-}
+.container { max-width:900px; margin:auto; padding:2rem; }
 
 .card {
   background: rgba(255,255,255,0.9);
@@ -82,7 +78,7 @@ footer {
   opacity:0.6;
 }
 
-/* Buttons for morning check-in */
+/* Morning Check-In Buttons */
 .button-group {
   display:flex;
   gap:1rem;
@@ -112,69 +108,75 @@ footer {
   color:#fff;
 }
 
-/* Photo placeholder */
+/* Photo */
 .photo-box {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1.5rem;
+  width:100%;
+  display:flex;
+  justify-content:center;
+  margin-bottom:1.5rem;
 }
 
 .photo {
-  width: 100%;
-  max-width: 500px;
-  border: 5px solid var(--cream);
-  border-radius: 12px;
+  width:100%;
+  max-width:500px;
+  border:5px solid var(--cream);
+  border-radius:12px;
   transition: transform 0.3s ease;
 }
 
-.photo:hover {
-  transform: scale(0.97);
+.photo:hover { transform: scale(0.97); }
+
+/* Weekly task input & button */
+#weeklyInput {
+  width: 100%;
+  padding:0.8rem;
+  border-radius:12px;
+  border:1px solid var(--silver);
+  font-family:inherit;
+  margin-bottom:0.8rem;
 }
 
-
-.photo-box input[type="file"] {
-  position:absolute;
-  width:100%;
-  height:100%;
-  opacity:0;
+#addWeeklyTask {
+  padding:0.8rem 1.6rem;
+  border:none;
+  border-radius:20px;
+  background: var(--silver);
+  font-family:inherit;
   cursor:pointer;
+  transition:0.2s;
 }
 
-.photo-box p {
-  pointer-events:none;
-  font-size:1rem;
-  text-align:center;
-}
+#addWeeklyTask:hover { background: var(--pink); }
 </style>
 </head>
 <body>
 
 <header>
   <h1>Daily Path</h1>
-  <p>So efficient girl!</p>
+  <p>Structure without punishment</p>
   <p><a href="archive.html">View Archive</a></p>
 </header>
 
 <div class="container">
 
-  <!-- Photo upload -->
- <div class="photo-box">
-  <img src="cropped_deer.jpg" alt="Your photo" class="photo">
-</div>
+  <!-- Photo -->
+  <div class="photo-box">
+    <img src="cropped_deer.jpg" alt="Your photo" class="photo">
+  </div>
 
-  
-  <!-- Night Setup -->
+  <!-- Weekly Tasks -->
   <div class="card">
-    <h2>Night Setup</h2>
-    <input id="taskInput" placeholder="Task">
-    <div class="button-group">
-      <button data-value="integral" onclick="setImportance(this)">Integral</button>
-      <button data-value="should" onclick="setImportance(this)">Should Do</button>
-      <button data-value="optional" onclick="setImportance(this)">Would Like To</button>
-    </div>
-    <button onclick="addTask()">Add Task</button>
-    <div id="taskList"></div>
+    <h2>Weekly Tasks</h2>
+    <input type="text" id="weeklyInput" placeholder="Enter a weekly task">
+    <button id="addWeeklyTask">Add</button>
+    <div id="weeklyList"></div>
+  </div>
+
+  <!-- Daily Prioritising -->
+  <div class="card">
+    <h2>Daily Prioritising</h2>
+    <p>Select tasks for today:</p>
+    <div id="dailyChoices"></div>
   </div>
 
   <!-- Morning Check-In -->
@@ -211,47 +213,69 @@ footer {
 
 </div>
 
-<footer>
-  Missing a day is natural.
-</footer>
+<footer>Missing a day is natural.</footer>
 
 <script>
-let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-let importance = "integral";
+let weeklyTasks = JSON.parse(localStorage.getItem("weeklyTasks")) || [];
+let dailyTasks = [];
 let sleep="", feeling="", wake="";
 
-function saveTasks() {
-  localStorage.setItem("tasks", JSON.stringify(tasks));
-}
+// Add weekly task
+const weeklyInput = document.getElementById("weeklyInput");
+const weeklyList = document.getElementById("weeklyList");
 
-// Night Setup
-function setImportance(btn){
-  importance = btn.dataset.value;
-  btn.parentNode.querySelectorAll("button").forEach(b=>b.classList.remove("selected"));
-  btn.classList.add("selected");
-}
+function saveWeekly() { localStorage.setItem("weeklyTasks", JSON.stringify(weeklyTasks)); }
 
-function addTask() {
-  const text = document.getElementById("taskInput").value;
+document.getElementById("addWeeklyTask").addEventListener("click", ()=>{
+  const text = weeklyInput.value.trim();
   if(!text) return;
-  tasks.push({text, importance, done:false});
-  document.getElementById("taskInput").value="";
-  saveTasks();
-  renderTasks();
-}
+  weeklyTasks.push({text, importance:"integral", done:false}); // default importance
+  weeklyInput.value="";
+  saveWeekly();
+  renderWeekly();
+});
 
-function renderTasks() {
-  const list = document.getElementById("taskList");
-  list.innerHTML="";
-  tasks.forEach(t=>{
-    const div=document.createElement("div");
-    div.className=`task ${t.importance}`;
-    div.textContent=t.text;
-    list.appendChild(div);
+function renderWeekly(){
+  weeklyList.innerHTML="";
+  weeklyTasks.forEach((t,i)=>{
+    const div = document.createElement("div");
+    div.className="task integral";
+    div.textContent = t.text;
+    weeklyList.appendChild(div);
   });
 }
 
-renderTasks();
+renderWeekly();
+
+// Daily selection from weekly
+const dailyChoices = document.getElementById("dailyChoices");
+function renderDailyChoices(){
+  dailyChoices.innerHTML="";
+  weeklyTasks.forEach((t,i)=>{
+    const div = document.createElement("div");
+    div.className="task integral";
+    div.innerHTML=`<input type="checkbox" data-index="${i}"> ${t.text}`;
+    dailyChoices.appendChild(div);
+  });
+}
+renderDailyChoices();
+
+function decidePath() {
+  // gather selected tasks
+  dailyTasks = [];
+  dailyChoices.querySelectorAll("input[type=checkbox]").forEach(input=>{
+    if(input.checked){
+      const i = parseInt(input.dataset.index);
+      dailyTasks.push({...weeklyTasks[i]});
+    }
+  });
+
+  // path logic
+  let path = "green";
+  if(sleep==="bad" || feeling==="low") path="yellow";
+  if(sleep==="bad" && wake==="no") path="red";
+  showDay(path);
+}
 
 // Morning Check-In buttons
 function setupButtons(id, variableName) {
@@ -268,49 +292,39 @@ setupButtons("sleepButtons","sleep");
 setupButtons("feelingButtons","feeling");
 setupButtons("wakeButtons","wake");
 
-// Day logic
-function decidePath() {
-  let path = "green";
-  if(sleep==="bad" || feeling==="low") path="yellow";
-  if(sleep==="bad" && wake==="no") path="red";
-  showDay(path);
-}
-
 function showDay(path){
   document.getElementById("day").classList.remove("hidden");
   const title = document.getElementById("pathTitle");
   const container = document.getElementById("dayTasks");
   container.innerHTML="";
   title.textContent = path==="green"?"Green Path — Everything":path==="yellow"?"Yellow Path — Enough is enough":"Red Path — Only essentials";
-  tasks.forEach((t,i)=>{
-    if(path==="green" || (path==="yellow" && t.importance!=="optional") || (path==="red" && t.importance==="integral")){
-      const div=document.createElement("div");
+
+  dailyTasks.forEach((t,i)=>{
+    const include = path==="green" || (path==="yellow" && t.importance!=="optional") || (path==="red" && t.importance==="integral");
+    if(include){
+      const div = document.createElement("div");
       div.className=`task ${t.importance}`;
-      div.innerHTML=`<input type="checkbox" ${t.done?"checked":""} onchange="toggleDone(${i})">${t.text}`;
+      div.innerHTML=`<input type="checkbox" ${t.done?"checked":""} onchange="toggleDone(${i})"> ${t.text}`;
       container.appendChild(div);
     }
   });
   localStorage.setItem("currentPath", path);
 }
 
-function toggleDone(i){
-  tasks[i].done=!tasks[i].done;
-  saveTasks();
-}
+function toggleDone(i){ dailyTasks[i].done=!dailyTasks[i].done; }
 
-// Archive
 function archiveDay(){
   const archive = JSON.parse(localStorage.getItem("archive"))||[];
   archive.push({
-    date:new Date().toLocaleDateString(),
+    date: new Date().toLocaleDateString(),
     path: localStorage.getItem("currentPath"),
-    tasks:[...tasks]
+    tasks: [...dailyTasks]
   });
-  localStorage.setItem("archive",JSON.stringify(archive));
-  tasks=[];
-  saveTasks();
+  localStorage.setItem("archive", JSON.stringify(archive));
+  dailyTasks=[];
+  renderDailyChoices(); // reset daily selection
   alert("Day archived 🌙");
-  location.reload();
+  document.getElementById("day").classList.add("hidden");
 }
 </script>
 
