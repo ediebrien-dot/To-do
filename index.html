@@ -13,7 +13,7 @@
   --yellow: #f2d97f;
   --red: #d97b7f;
   --text: #3b3b3b;
-  --archive-color: #a65a6d; /* darker pink for archive link */
+  --archive-color: #a65a6d;
 }
 
 body {
@@ -49,7 +49,7 @@ header a:hover { color: var(--text); }
   box-shadow:0 10px 30px rgba(0,0,0,0.08);
 }
 
-h2 { margin-bottom:1rem; }
+h2 { margin-bottom:1rem; cursor:pointer; }
 
 .task {
   display:flex;
@@ -126,7 +126,7 @@ footer {
 
 .photo:hover { transform: scale(0.97); }
 
-/* Weekly task input & button */
+/* Weekly task input & buttons */
 #weeklyInput {
   width: 100%;
   padding:0.8rem;
@@ -145,17 +145,23 @@ footer {
   font-family:inherit;
 }
 
-#addWeeklyTask {
+#addWeeklyTask, #resetWeekly {
   padding:0.8rem 1.6rem;
   border:none;
   border-radius:20px;
-  background: var(--silver);
   font-family:inherit;
   cursor:pointer;
   transition:0.2s;
 }
 
+#addWeeklyTask { background: var(--silver); }
 #addWeeklyTask:hover { background: var(--pink); }
+
+#resetWeekly { background:#d97b7f; color:#fff; }
+#resetWeekly:hover { background:#b75a63; }
+
+/* Collapsible content */
+#weeklyContent { display:block; overflow:hidden; transition:max-height 0.3s ease; }
 </style>
 </head>
 <body>
@@ -175,15 +181,20 @@ footer {
 
   <!-- Weekly Tasks -->
   <div class="card">
-    <h2>Weekly Tasks</h2>
-    <input type="text" id="weeklyInput" placeholder="Enter a weekly task">
-    <select id="importanceSelect">
-      <option value="integral">Integral</option>
-      <option value="should">Should Do</option>
-      <option value="optional">Would Like To</option>
-    </select>
-    <button id="addWeeklyTask">Add Task</button>
-    <div id="weeklyList"></div>
+    <h2 onclick="toggleWeekly()">Weekly Tasks ⬇</h2>
+    <div id="weeklyContent">
+      <input type="text" id="weeklyInput" placeholder="Enter a weekly task">
+      <select id="importanceSelect">
+        <option value="integral">Integral</option>
+        <option value="should">Should Do</option>
+        <option value="optional">Would Like To</option>
+      </select>
+      <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
+        <button id="addWeeklyTask">Add Task</button>
+        <button id="resetWeekly">Reset All</button>
+      </div>
+      <div id="weeklyList"></div>
+    </div>
   </div>
 
   <!-- Daily Prioritising -->
@@ -234,12 +245,19 @@ let weeklyTasks = JSON.parse(localStorage.getItem("weeklyTasks")) || [];
 let dailyTasks = [];
 let sleep="", feeling="", wake="";
 
+// Collapsible weekly section
+function toggleWeekly(){
+  const content = document.getElementById("weeklyContent");
+  if(content.style.display==="none") content.style.display="block";
+  else content.style.display="none";
+}
+
 // Add weekly task
 const weeklyInput = document.getElementById("weeklyInput");
 const importanceSelect = document.getElementById("importanceSelect");
 const weeklyList = document.getElementById("weeklyList");
 
-function saveWeekly() { localStorage.setItem("weeklyTasks", JSON.stringify(weeklyTasks)); }
+function saveWeekly(){ localStorage.setItem("weeklyTasks", JSON.stringify(weeklyTasks)); }
 
 document.getElementById("addWeeklyTask").addEventListener("click", ()=>{
   const text = weeklyInput.value.trim();
@@ -252,10 +270,20 @@ document.getElementById("addWeeklyTask").addEventListener("click", ()=>{
   renderDailyChoices();
 });
 
+// Reset weekly tasks
+document.getElementById("resetWeekly").addEventListener("click", ()=>{
+  if(confirm("Are you sure you want to delete all weekly tasks? This cannot be undone.")){
+    weeklyTasks=[];
+    saveWeekly();
+    renderWeekly();
+    renderDailyChoices();
+  }
+});
+
 function renderWeekly(){
   weeklyList.innerHTML="";
-  weeklyTasks.forEach((t,i)=>{
-    const div = document.createElement("div");
+  weeklyTasks.forEach(t=>{
+    const div=document.createElement("div");
     div.className="task "+t.importance;
     div.textContent = t.text + " (" + t.importance + ")";
     weeklyList.appendChild(div);
@@ -267,7 +295,7 @@ const dailyChoices = document.getElementById("dailyChoices");
 function renderDailyChoices(){
   dailyChoices.innerHTML="";
   weeklyTasks.forEach((t,i)=>{
-    const div = document.createElement("div");
+    const div=document.createElement("div");
     div.className="task "+t.importance;
     div.innerHTML = `<input type="checkbox" data-index="${i}"> ${t.text} 
       <select data-index="${i}" onchange="updateDailyImportance(this)">
@@ -286,10 +314,10 @@ function updateDailyImportance(sel){
 }
 
 // Morning Check-In buttons
-function setupButtons(id, variableName) {
+function setupButtons(id, variableName){
   document.querySelectorAll(`#${id} button`).forEach(btn=>{
     btn.addEventListener("click", ()=>{
-      window[variableName] = btn.dataset.value;
+      window[variableName]=btn.dataset.value;
       btn.parentNode.querySelectorAll("button").forEach(b=>b.classList.remove("selected"));
       btn.classList.add("selected");
     });
@@ -300,16 +328,16 @@ setupButtons("sleepButtons","sleep");
 setupButtons("feelingButtons","feeling");
 setupButtons("wakeButtons","wake");
 
-function decidePath() {
-  dailyTasks = [];
+function decidePath(){
+  dailyTasks=[];
   dailyChoices.querySelectorAll("input[type=checkbox]").forEach(input=>{
     if(input.checked){
-      const i = parseInt(input.dataset.index);
+      const i=parseInt(input.dataset.index);
       dailyTasks.push({...weeklyTasks[i]});
     }
   });
 
-  let path = "green";
+  let path="green";
   if(sleep==="bad" || feeling==="low") path="yellow";
   if(sleep==="bad" && wake==="no") path="red";
   showDay(path);
@@ -325,7 +353,7 @@ function showDay(path){
   dailyTasks.forEach((t,i)=>{
     const include = path==="green" || (path==="yellow" && t.importance!=="optional") || (path==="red" && t.importance==="integral");
     if(include){
-      const div = document.createElement("div");
+      const div=document.createElement("div");
       div.className=`task ${t.importance}`;
       div.innerHTML=`<input type="checkbox" ${t.done?"checked":""} onchange="toggleDone(${i})"> ${t.text} (${t.importance})`;
       container.appendChild(div);
