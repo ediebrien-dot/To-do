@@ -114,17 +114,24 @@ footer {
 
 /* Photo placeholder */
 .photo-box {
-  width:100%;
-  height:200px;
-  border:2px dashed var(--silver);
-  border-radius:10px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  margin-bottom:1.5rem;
-  opacity:0.7;
-  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
 }
+
+.photo {
+  width: 100%;
+  max-width: 500px;
+  border: 5px solid var(--cream);
+  border-radius: 12px;
+  transition: transform 0.3s ease;
+}
+
+.photo:hover {
+  transform: scale(0.97);
+}
+
 
 .photo-box input[type="file"] {
   position:absolute;
@@ -152,10 +159,10 @@ footer {
 <div class="container">
 
   <!-- Photo upload -->
-   <div class="block">
-    <img src="deer.jpg">
+ <div class="photo-box">
+  <img src="deer.jpg" alt="Your photo" class="photo">
+</div>
 
-  </div>
   
   <!-- Night Setup -->
   <div class="card">
